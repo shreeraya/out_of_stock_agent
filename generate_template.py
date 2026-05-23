@@ -35,22 +35,22 @@ def create_styled_excel():
     
     # 1. SKU Metadata
     sku_data = [
-        {"SKU": "SKU-001", "Description": "Premium Wireless Headphones", "Category": "Electronics", "Supplier_ID": "SUPP-101", "Unit_Cost_USD": 45.00, "Selling_Price_USD": 99.00, "Lead_Time_Days": 7},
-        {"SKU": "SKU-002", "Description": "Ergonomic Office Chair", "Category": "Furniture", "Supplier_ID": "SUPP-202", "Unit_Cost_USD": 75.00, "Selling_Price_USD": 180.00, "Lead_Time_Days": 10},
-        {"SKU": "SKU-003", "Description": "Organic Matcha Tea Powder 100g", "Category": "Pantry", "Supplier_ID": "SUPP-303", "Unit_Cost_USD": 8.50, "Selling_Price_USD": 22.00, "Lead_Time_Days": 12},
-        {"SKU": "SKU-004", "Description": "Smart Fitness Tracker Band", "Category": "Electronics", "Supplier_ID": "SUPP-101", "Unit_Cost_USD": 20.00, "Selling_Price_USD": 49.00, "Lead_Time_Days": 5},
-        {"SKU": "SKU-005", "Description": "Biodegradable Bamboo Coffee Mug", "Category": "Housewares", "Supplier_ID": "SUPP-404", "Unit_Cost_USD": 3.00, "Selling_Price_USD": 12.00, "Lead_Time_Days": 6}
+        {"SKU": "SKU-001", "Description": "Premium Wireless Headphones", "Category": "Electronics", "Supplier_ID": "SUPP-101", "Unit_Cost_USD": 45.00, "Selling_Price_USD": 99.00, "Lead_Time_Days": 7, "Lead_Time_StdDev_Days": 1.2},
+        {"SKU": "SKU-002", "Description": "Ergonomic Office Chair", "Category": "Furniture", "Supplier_ID": "SUPP-202", "Unit_Cost_USD": 75.00, "Selling_Price_USD": 180.00, "Lead_Time_Days": 10, "Lead_Time_StdDev_Days": 2.0},
+        {"SKU": "SKU-003", "Description": "Organic Matcha Tea Powder 100g", "Category": "Pantry", "Supplier_ID": "SUPP-303", "Unit_Cost_USD": 8.50, "Selling_Price_USD": 22.00, "Lead_Time_Days": 12, "Lead_Time_StdDev_Days": 2.5},
+        {"SKU": "SKU-004", "Description": "Smart Fitness Tracker Band", "Category": "Electronics", "Supplier_ID": "SUPP-101", "Unit_Cost_USD": 20.00, "Selling_Price_USD": 49.00, "Lead_Time_Days": 5, "Lead_Time_StdDev_Days": 1.0},
+        {"SKU": "SKU-005", "Description": "Biodegradable Bamboo Coffee Mug", "Category": "Housewares", "Supplier_ID": "SUPP-404", "Unit_Cost_USD": 3.00, "Selling_Price_USD": 12.00, "Lead_Time_Days": 6, "Lead_Time_StdDev_Days": 1.5}
     ]
     df_sku = pd.DataFrame(sku_data)
     
     # 2. Inventory Status
     inventory_data = [
-        {"SKU": "SKU-001", "DC": "DC-EAST", "Current_Stock_Units": 200, "Safety_Stock_Units": 50, "Reorder_Point_Units": 80, "Reorder_Quantity_Units": 150},
-        {"SKU": "SKU-002", "DC": "DC-EAST", "Current_Stock_Units": 120, "Safety_Stock_Units": 40, "Reorder_Point_Units": 60, "Reorder_Quantity_Units": 100},
-        {"SKU": "SKU-003", "DC": "DC-WEST", "Current_Stock_Units": 50, "Safety_Stock_Units": 30, "Reorder_Point_Units": 60, "Reorder_Quantity_Units": 120},
-        {"SKU": "SKU-004", "DC": "DC-EAST", "Current_Stock_Units": 10, "Safety_Stock_Units": 40, "Reorder_Point_Units": 50, "Reorder_Quantity_Units": 100},
-        {"SKU": "SKU-005", "DC": "DC-EAST", "Current_Stock_Units": 15, "Safety_Stock_Units": 25, "Reorder_Point_Units": 35, "Reorder_Quantity_Units": 80},
-        {"SKU": "SKU-005", "DC": "DC-WEST", "Current_Stock_Units": 300, "Safety_Stock_Units": 40, "Reorder_Point_Units": 80, "Reorder_Quantity_Units": 150} # Transfer source
+        {"SKU": "SKU-001", "DC": "DC-EAST", "Current_Stock_Units": 200, "Safety_Stock_Units": 50, "Reorder_Point_Units": 80, "Reorder_Quantity_Units": 150, "Demand_StdDev_Units": 2.5},
+        {"SKU": "SKU-002", "DC": "DC-EAST", "Current_Stock_Units": 120, "Safety_Stock_Units": 40, "Reorder_Point_Units": 60, "Reorder_Quantity_Units": 100, "Demand_StdDev_Units": 4.0},
+        {"SKU": "SKU-003", "DC": "DC-WEST", "Current_Stock_Units": 50, "Safety_Stock_Units": 30, "Reorder_Point_Units": 60, "Reorder_Quantity_Units": 120, "Demand_StdDev_Units": 3.0},
+        {"SKU": "SKU-004", "DC": "DC-EAST", "Current_Stock_Units": 10, "Safety_Stock_Units": 40, "Reorder_Point_Units": 50, "Reorder_Quantity_Units": 100, "Demand_StdDev_Units": 2.0},
+        {"SKU": "SKU-005", "DC": "DC-EAST", "Current_Stock_Units": 15, "Safety_Stock_Units": 25, "Reorder_Point_Units": 35, "Reorder_Quantity_Units": 80, "Demand_StdDev_Units": 1.5},
+        {"SKU": "SKU-005", "DC": "DC-WEST", "Current_Stock_Units": 300, "Safety_Stock_Units": 40, "Reorder_Point_Units": 80, "Reorder_Quantity_Units": 150, "Demand_StdDev_Units": 1.0}
     ]
     df_inventory = pd.DataFrame(inventory_data)
     

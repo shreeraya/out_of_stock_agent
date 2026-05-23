@@ -41,7 +41,20 @@ class ExcelHandler:
                     raise ValueError(f"Sheet '{sheet_name}' is missing required columns: {missing_cols}")
                 
                 # Clean up and select columns
-                df = df[cols].copy()
+                target_cols = cols.copy()
+                if sheet_name == "SKU_Metadata" and "Lead_Time_StdDev_Days" in df.columns:
+                    target_cols.append("Lead_Time_StdDev_Days")
+                elif sheet_name == "Inventory_Status" and "Demand_StdDev_Units" in df.columns:
+                    target_cols.append("Demand_StdDev_Units")
+                
+                df = df[target_cols].copy()
+                
+                # Apply fallback defaults if columns were not in the sheet
+                if sheet_name == "SKU_Metadata" and "Lead_Time_StdDev_Days" not in df.columns:
+                    df["Lead_Time_StdDev_Days"] = df["Lead_Time_Days"] * 0.15
+                elif sheet_name == "Inventory_Status" and "Demand_StdDev_Units" not in df.columns:
+                    df["Demand_StdDev_Units"] = None
+                
                 df["SKU"] = df["SKU"].astype(str).str.strip()
                 if "DC" in df.columns:
                     df["DC"] = df["DC"].astype(str).str.strip()
@@ -199,6 +212,9 @@ class ExcelHandler:
                     elif "Cost" in header_name or "Price" in header_name or "USD" in header_name:
                         cell.number_format = "$#,##0.00"
                         cell.alignment = right_align
+                    elif "Probability" in header_name:
+                        cell.number_format = "0.0%"
+                        cell.alignment = right_align
                     elif "Units" in header_name or "Stock" in header_name or "Impact" in header_name or "Days" in header_name:
                         cell.number_format = "#,##0"
                         cell.alignment = right_align
@@ -239,8 +255,11 @@ class ExcelHandler:
                 
         # 1. Output Dashboard
         df_oos = pd.DataFrame(oos_risks)
+        cols_order = ["SKU", "DC", "Date_of_OOS", "Days_Until_OOS", "Current_Stock", "Projected_Stock_on_OOS_Date", "Stockout_Probability", "Severity_Level"]
         if df_oos.empty:
-            df_oos = pd.DataFrame(columns=["SKU", "DC", "Date_of_OOS", "Days_Until_OOS", "Current_Stock", "Projected_Stock_on_OOS_Date", "Severity_Level"])
+            df_oos = pd.DataFrame(columns=cols_order)
+        else:
+            df_oos = df_oos[[c for c in cols_order if c in df_oos.columns]].copy()
         add_styled_sheet(df_oos, "OOS_Risk_Dashboard", is_dashboard=True)
         
         # 2. Output RCA

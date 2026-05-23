@@ -14,6 +14,7 @@ class RootCauseAnalyzerAgent(BaseAgent):
         dc = oos_incident["DC"]
         date_of_oos = oos_incident["Date_of_OOS"]
         days_until_oos = oos_incident["Days_Until_OOS"]
+        prob_score = oos_incident.get("Stockout_Probability", 1.0)
         
         # 1. Fallback Logic (Deterministic heuristics when OpenAI is offline)
         fallback_rca = self._get_deterministic_fallback(oos_incident, trace, sku_meta, inventory_status, pipeline_orders)
@@ -24,8 +25,12 @@ class RootCauseAnalyzerAgent(BaseAgent):
         # 2. Cognitive LLM Logic
         system_prompt = (
             "You are a master Supply Chain RCA (Root Cause Analysis) Consultant.\n"
-            "Your job is to analyze an upcoming Out-of-Stock (OOS) event and diagnose exactly why it is happening.\n"
-            "You must categorize the primary root cause and provide a high-level narrative explanation that mentions key numbers (stock levels, dates, demands, lead times).\n"
+            "Your job is to analyze an upcoming Out-of-Stock (OOS) event and diagnose exactly why it is happening. "
+            "Note that we now run a **probabilistic simulation**. The OOS Date represents the first date where expected stock goes below zero OR the OOS probability breaches the 85% safety threshold due to supply and demand volatility.\n\n"
+            "Incorporate the following statistical parameters in your analysis:\n"
+            "- Demand Volatility (Daily Demand StdDev)\n"
+            "- Supplier Lead-Time Volatility (Lead-Time StdDev)\n"
+            "- Combined Stockout Probability on the flagged date\n\n"
             "Choose a primary root cause from one of these standard categories:\n"
             "- 'Promotional Demand Spike' (demand surged dramatically above average sales)\n"
             "- 'Supplier Lead-Time Delay' (outstanding PO is delayed or expected delivery date is too late)\n"
@@ -35,30 +40,33 @@ class RootCauseAnalyzerAgent(BaseAgent):
             "Respond ONLY with a JSON object containing:\n"
             "{\n"
             "  \"Primary_Root_Cause\": \"<category>\",\n"
-            "  \"Secondary_Factors\": \"<short description of minor contributing factors>\",\n"
-            "  \"Narrative_Reasoning\": \"<detailed expert narrative explaining how the numbers play out>\"\n"
+            "  \"Secondary_Factors\": \"<short description of minor contributing factors, including the role of volatility>\",\n"
+            "  \"Narrative_Reasoning\": \"<detailed expert narrative explaining how the numbers and standard deviations play out>\"\n"
             "}\n"
             "Respond in valid JSON only."
         )
         
         # Format input details for LLM
-        timeline_str = trace[["Date", "Starting_Stock", "Demand", "Receipts", "Ending_Stock", "Trigger_Reorder"]].to_string(index=False)
+        timeline_str = trace[["Date", "Starting_Stock", "Demand", "Receipts", "Ending_Stock", "Trigger_Reorder", "OOS_Probability"]].to_string(index=False)
         
         user_prompt = (
             f"DIAGNOSTIC CASE SHEET:\n"
             f"SKU: {sku} ({sku_meta.get('Description', 'N/A')})\n"
             f"DC: {dc}\n"
             f"Predicted OOS Date: {date_of_oos} (in {days_until_oos} days)\n"
+            f"Expected Stockout Probability: {prob_score * 100:.1f}%\n"
             f"Current Stock: {inventory_status.get('Current_Stock_Units', 0)} units\n"
             f"Safety Stock: {inventory_status.get('Safety_Stock_Units', 0)} units\n"
             f"Reorder Point: {inventory_status.get('Reorder_Point_Units', 0)} units\n"
             f"Reorder Qty: {inventory_status.get('Reorder_Quantity_Units', 0)} units\n"
-            f"Supplier Lead Time: {sku_meta.get('Lead_Time_Days', 0)} days\n"
+            f"Supplier Lead Time (Mean): {sku_meta.get('Lead_Time_Days', 0)} days\n"
+            f"Supplier Lead Time Volatility (StdDev): {sku_meta.get('Lead_Time_StdDev_Days', 0.0):.2f} days\n"
+            f"Daily Demand Volatility (StdDev): {inventory_status.get('Demand_StdDev_Units', 0.0):.2f} units/day\n"
             f"Outstanding Pipeline Orders: {json.dumps(pipeline_orders, indent=2)}\n\n"
-            f"Daily Inventory Simulation Trace:\n"
+            f"Daily Inventory Simulation Trace (including Stockout Probabilities):\n"
             f"{timeline_str}\n\n"
             f"Based on this trace and parameters, please analyze the interaction of demand, lead time, safety stock, and pipeline receipts. "
-            f"Identify why the inventory went negative and generate the diagnosis JSON."
+            f"Identify why the inventory went negative or reached a high probability of failure, and generate the diagnosis JSON."
         )
         
         try:
@@ -106,7 +114,15 @@ class RootCauseAnalyzerAgent(BaseAgent):
                 active_pipeline = True
                 
         # Heuristics
-        if days_until_oos <= 3 and curr_stock < safety_stock:
+        prob_breach = (oos_incident.get("Projected_Stock_on_OOS_Date", 0) >= 0)
+        prob_score = oos_incident.get("Stockout_Probability", 1.0)
+        
+        if prob_breach:
+            primary = "High Volatility Risk Breach"
+            secondary = f"Expected stock is positive, but combined demand/supply volatility raises the stockout probability to {prob_score*100:.1f}%."
+            narrative = f"Although the expected stock remains positive on {date_of_oos}, the combined volatility of daily demand (stddev: {inventory_status.get('Demand_StdDev_Units', 0.0):.2f} units/day) and supplier lead time (stddev: {sku_meta.get('Lead_Time_StdDev_Days', 0.0):.2f} days) raises the stockout risk probability to {prob_score*100:.1f}%, breaching the 85% safety threshold and requiring immediate safety stock adjustments."
+            
+        elif days_until_oos <= 3 and curr_stock < safety_stock:
             primary = "Severe Initial Understocking"
             secondary = "Current stock was already critically below safety stock prior to simulation start."
             narrative = f"Inventory runs out immediately on Day {days_until_oos} because starting inventory ({curr_stock} units) is already critically below the safety stock threshold ({safety_stock} units) with no incoming shipments scheduled early enough."
