@@ -1,0 +1,26 @@
+# Environment Variables (Contains private API Keys!)
+.env
+.env.local
+
+# Python Cache & Visuals
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+
+# IDE / OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Output reports (large spreadsheets can be regenerated)
+# oos_analysis_report.xlsx
+# oos_analysis_report_*.xlsx
