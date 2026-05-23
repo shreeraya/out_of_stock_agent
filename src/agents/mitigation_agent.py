@@ -12,8 +12,8 @@ class MitigationAdvisorAgent(BaseAgent):
         """Formulates an actionable mitigation recommendation using LLM reasoning (with robust deterministic fallback if offline)."""
         sku = rca_report["SKU"]
         dc = rca_report["DC"]
-        date_of_oos = rca_report["Date_of_OOS"]
-        days_until_oos = rca_report["Days_Until_OOS"]
+        week_of_oos = rca_report["Week_of_OOS"]
+        weeks_until_oos = rca_report["Weeks_Until_OOS"]
         root_cause = rca_report["Primary_Root_Cause"]
         
         # 1. Gather SKU metadata
@@ -51,7 +51,7 @@ class MitigationAdvisorAgent(BaseAgent):
             "1. **Explicit Ownership & Steps**: Break down actions into sequential, step-by-step tasks (e.g., ERP transaction codes, supplier contacts, logistics bookings).\n"
             "2. **Specific IDs & Data**: Always refer to the exact SKU code, DC, Order_ID (PO-XXX), and supplier IDs provided. Do not use placeholders.\n"
             "3. **ERP Actions**: Detail what master data parameters should be adjusted (e.g., Safety Stock, Reorder Point) in their ERP system (SAP/Oracle/etc.) if relevant.\n"
-            "4. **Concrete logistics**: Give clear freight directives (e.g., STO LTL, expedited air freight, carrier upgrade).\n"
+            "4. **Concrete logistics**: Give clear freight directives in weekly timing (e.g., STO LTL transfer, expedited air freight, carrier upgrade).\n"
             "5. **Priority and Value**: Assign realistic cost impacts and quantities based on the unit costs and deficits.\n\n"
             "Recommend one of the following core action types:\n"
             "- 'Inter-DC Stock Transfer' (if another DC has a transferable surplus above its safety stock)\n"
@@ -76,7 +76,7 @@ class MitigationAdvisorAgent(BaseAgent):
             f"Unit Cost: ${unit_cost:.2f}\n"
             f"Diagnosed Root Cause: {root_cause}\n"
             f"Reasoning: {rca_report['Narrative_Reasoning']}\n"
-            f"OOS Predicted on: {date_of_oos} (in {days_until_oos} days)\n"
+            f"OOS Predicted Week: {week_of_oos} (in {weeks_until_oos} weeks)\n"
             f"Outstanding Supply Pipeline: {json.dumps(pipeline_orders, indent=2)}\n"
             f"Potential Transfer Sources (Surplus at Other DCs): {json.dumps(transfer_sources, indent=2)}\n\n"
             f"Please formulate the most cost-efficient, operational plan to prevent the stockout. "
@@ -91,7 +91,7 @@ class MitigationAdvisorAgent(BaseAgent):
             result = {
                 "SKU": sku,
                 "DC": dc,
-                "Date_of_OOS": date_of_oos,
+                "Week_of_OOS": week_of_oos,
                 "Recommended_Action": parsed.get("Recommended_Action", fallback_mitigation["Recommended_Action"]),
                 "Action_Steps": parsed.get("Action_Steps", fallback_mitigation["Action_Steps"]),
                 "Inventory_Impact_Units": int(parsed.get("Inventory_Impact_Units", fallback_mitigation["Inventory_Impact_Units"])),
@@ -107,17 +107,17 @@ class MitigationAdvisorAgent(BaseAgent):
         """Deterministic heuristic fallback when LLM is unavailable."""
         sku = rca_report["SKU"]
         dc = rca_report["DC"]
-        date_of_oos = rca_report["Date_of_OOS"]
-        days_until_oos = rca_report["Days_Until_OOS"]
+        week_of_oos = rca_report["Week_of_OOS"]
+        weeks_until_oos = rca_report["Weeks_Until_OOS"]
         root_cause = rca_report["Primary_Root_Cause"]
         
         unit_cost = sku_meta.get("Unit_Cost_USD", 10.0)
-        lead_time = sku_meta.get("Lead_Time_Days", 7)
+        lead_time = float(sku_meta.get("Lead_Time_Weeks", 1.0))
         
         # Priority level
-        if days_until_oos < 5:
+        if weeks_until_oos < 2:
             priority = "High"
-        elif 5 <= days_until_oos <= 12:
+        elif 2 <= weeks_until_oos <= 4:
             priority = "Medium"
         else:
             priority = "Low"
@@ -130,12 +130,12 @@ class MitigationAdvisorAgent(BaseAgent):
             steps = (
                 f"1. Open ERP Stock Transfer Transaction (e.g., SAP MB1B / ME21N) and initiate a Stock Transport Order (STO) for {transfer_qty} units of {sku} from source plant {source['Source_DC']} to receiving plant {dc}.\n"
                 f"2. Contact regional warehouse logistics lead at plant {source['Source_DC']} to expedite picking/packing and coordinate carrier booking.\n"
-                f"3. Route via expedited Less-Than-Truckload (LTL) carrier. Expected transit time: 3 days. Track shipment status daily to ensure receipt prior to OOS date {date_of_oos}."
+                f"3. Route via expedited Less-Than-Truckload (LTL) carrier. Expected transit time: 1 week. Track shipment status daily to ensure receipt prior to OOS week {week_of_oos}."
             )
             return {
                 "SKU": sku,
                 "DC": dc,
-                "Date_of_OOS": date_of_oos,
+                "Week_of_OOS": week_of_oos,
                 "Recommended_Action": "Inter-DC Stock Transfer",
                 "Action_Steps": steps,
                 "Inventory_Impact_Units": transfer_qty,
@@ -154,17 +154,17 @@ class MitigationAdvisorAgent(BaseAgent):
             po_id = delayed_po.get("Order_ID", "Active PO")
             qty = int(delayed_po.get("Quantity_Units", 100))
             cost = 250.00 # Expedited carrier surcharge
-            po_date = delayed_po.get("Expected_Delivery_Date", "original date")
+            po_date = delayed_po.get("Expected_Delivery_Week_Start", "original date")
             steps = (
                 f"1. Open ERP Purchase Order Transaction (e.g., SAP ME22N) and locate PO {po_id} for {qty} units of {sku}.\n"
                 f"2. Contact the supplier account manager for {sku_meta.get('Supplier_ID', 'SUPP')} to verify production readiness and release status.\n"
-                f"3. Coordinate with internal shipping department to upgrade transport routing from Standard LTL to Expedited Carrier (ETA shift: compress from {po_date} to before {date_of_oos}).\n"
+                f"3. Coordinate with internal shipping department to upgrade transport routing from Standard LTL to Expedited Carrier (ETA shift: compress from {po_date} to before week {week_of_oos}).\n"
                 f"4. Apply expedited carrier surcharge of $250.00 and flag receiving dock at {dc} to prioritize offloading."
             )
             return {
                 "SKU": sku,
                 "DC": dc,
-                "Date_of_OOS": date_of_oos,
+                "Week_of_OOS": week_of_oos,
                 "Recommended_Action": "Expedite Outstanding PO",
                 "Action_Steps": steps,
                 "Inventory_Impact_Units": qty,
@@ -178,13 +178,13 @@ class MitigationAdvisorAgent(BaseAgent):
         steps = (
             f"1. Immediately draft and release an emergency Purchase Order for {qty_needed} units of {sku} to supplier {sku_meta.get('Supplier_ID', 'SUPP')} (ERP Transaction ME21N).\n"
             f"2. Contact supplier sales desk to request priority queue allocation and immediate manufacturing release.\n"
-            f"3. Route via expedited Air Freight (estimated charge: ${cost:.2f}) to bypass standard {lead_time}-day lead time. Target delivery by {date_of_oos}.\n"
+            f"3. Route via expedited Air Freight (estimated charge: ${cost:.2f}) to bypass standard {lead_time}-week lead time. Target delivery by week of {week_of_oos}.\n"
             f"4. Open ERP Material Master (SAP MM02) and review reorder point / safety stock buffer parameters to increase capacity settings for future replenishment cycles."
         )
         return {
             "SKU": sku,
             "DC": dc,
-            "Date_of_OOS": date_of_oos,
+            "Week_of_OOS": week_of_oos,
             "Recommended_Action": "Emergency Replenishment PO",
             "Action_Steps": steps,
             "Inventory_Impact_Units": qty_needed,

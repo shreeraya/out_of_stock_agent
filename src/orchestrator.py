@@ -44,11 +44,11 @@ class StockSentinelOrchestrator:
         
         print(f" -> Loaded {len(df_sku)} SKUs across {len(df_inventory['DC'].unique())} DCs.")
         
-        print("\n[STEP 2] Adjusting demand forecasts (DemandForecaster Agent)...")
+        print("\n[STEP 2] Adjusting weekly demand forecasts (DemandForecaster Agent)...")
         # In a hybrid forecasting system, the Demand agent applies marketing promotion contexts to the base forecast
-        df_adjusted_demand = self.demand_agent.forecast_daily_demand(df_demand, promo_context)
+        df_adjusted_demand = self.demand_agent.forecast_weekly_demand(df_demand, promo_context)
         
-        print("\n[STEP 3] Executing day-by-day inventory simulation (InventorySimulator Agent)...")
+        print("\n[STEP 3] Executing week-by-week inventory simulation (InventorySimulator Agent)...")
         oos_risks, simulation_traces = self.inventory_agent.simulate_inventory(
             df_sku, df_inventory, df_adjusted_demand, df_pipeline
         )
@@ -64,9 +64,9 @@ class StockSentinelOrchestrator:
             for idx, risk in enumerate(oos_risks, start=1):
                 sku = risk["SKU"]
                 dc = risk["DC"]
-                date_of_oos = risk["Date_of_OOS"]
+                week_of_oos = risk["Week_of_OOS"]
                 
-                print(f" [{idx}/{total_risks}] Auditing {sku} at {dc} (OOS date: {date_of_oos})...")
+                print(f" [{idx}/{total_risks}] Auditing {sku} at {dc} (OOS week: {week_of_oos})...")
                 
                 # Extract specific trace & params for this SKU-DC pair
                 trace = simulation_traces.get((sku, dc))

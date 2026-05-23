@@ -15,10 +15,10 @@ class ExcelHandler:
     def load_inputs(self) -> dict:
         """Loads and validates all necessary input sheets from the Excel file."""
         sheets = {
-            "SKU_Metadata": ["SKU", "Description", "Category", "Supplier_ID", "Unit_Cost_USD", "Selling_Price_USD", "Lead_Time_Days"],
+            "SKU_Metadata": ["SKU", "Description", "Category", "Supplier_ID", "Unit_Cost_USD", "Selling_Price_USD", "Lead_Time_Weeks"],
             "Inventory_Status": ["SKU", "DC", "Current_Stock_Units", "Safety_Stock_Units", "Reorder_Point_Units", "Reorder_Quantity_Units"],
-            "Demand_Forecast": ["SKU", "DC", "Date", "Forecasted_Demand_Units"],
-            "Supply_Pipeline": ["SKU", "DC", "Order_ID", "Quantity_Units", "Expected_Delivery_Date", "Status"]
+            "Demand_Forecast": ["SKU", "DC", "Week_Start_Date", "Forecasted_Demand_Units"],
+            "Supply_Pipeline": ["SKU", "DC", "Order_ID", "Quantity_Units", "Expected_Delivery_Week_Start", "Status"]
         }
         
         data = {}
@@ -42,18 +42,18 @@ class ExcelHandler:
                 
                 # Clean up and select columns
                 target_cols = cols.copy()
-                if sheet_name == "SKU_Metadata" and "Lead_Time_StdDev_Days" in df.columns:
-                    target_cols.append("Lead_Time_StdDev_Days")
-                elif sheet_name == "Inventory_Status" and "Demand_StdDev_Units" in df.columns:
-                    target_cols.append("Demand_StdDev_Units")
+                if sheet_name == "SKU_Metadata" and "Lead_Time_StdDev_Weeks" in df.columns:
+                    target_cols.append("Lead_Time_StdDev_Weeks")
+                elif sheet_name == "Inventory_Status" and "Weekly_Demand_StdDev_Units" in df.columns:
+                    target_cols.append("Weekly_Demand_StdDev_Units")
                 
                 df = df[target_cols].copy()
                 
                 # Apply fallback defaults if columns were not in the sheet
-                if sheet_name == "SKU_Metadata" and "Lead_Time_StdDev_Days" not in df.columns:
-                    df["Lead_Time_StdDev_Days"] = df["Lead_Time_Days"] * 0.15
-                elif sheet_name == "Inventory_Status" and "Demand_StdDev_Units" not in df.columns:
-                    df["Demand_StdDev_Units"] = None
+                if sheet_name == "SKU_Metadata" and "Lead_Time_StdDev_Weeks" not in df.columns:
+                    df["Lead_Time_StdDev_Weeks"] = df["Lead_Time_Weeks"] * 0.15
+                elif sheet_name == "Inventory_Status" and "Weekly_Demand_StdDev_Units" not in df.columns:
+                    df["Weekly_Demand_StdDev_Units"] = None
                 
                 df["SKU"] = df["SKU"].astype(str).str.strip()
                 if "DC" in df.columns:
@@ -255,7 +255,7 @@ class ExcelHandler:
                 
         # 1. Output Dashboard
         df_oos = pd.DataFrame(oos_risks)
-        cols_order = ["SKU", "DC", "Date_of_OOS", "Days_Until_OOS", "Current_Stock", "Projected_Stock_on_OOS_Date", "Stockout_Probability", "Severity_Level"]
+        cols_order = ["SKU", "DC", "Week_of_OOS", "Weeks_Until_OOS", "Current_Stock", "Projected_Stock_on_OOS_Date", "Stockout_Probability", "Severity_Level"]
         if df_oos.empty:
             df_oos = pd.DataFrame(columns=cols_order)
         else:
@@ -265,13 +265,17 @@ class ExcelHandler:
         # 2. Output RCA
         df_rca = pd.DataFrame(rca_results)
         if df_rca.empty:
-            df_rca = pd.DataFrame(columns=["SKU", "DC", "Date_of_OOS", "Days_Until_OOS", "Primary_Root_Cause", "Secondary_Factors", "Narrative_Reasoning"])
+            df_rca = pd.DataFrame(columns=["SKU", "DC", "Week_of_OOS", "Weeks_Until_OOS", "Primary_Root_Cause", "Secondary_Factors", "Narrative_Reasoning"])
+        else:
+            df_rca = df_rca[["SKU", "DC", "Week_of_OOS", "Weeks_Until_OOS", "Primary_Root_Cause", "Secondary_Factors", "Narrative_Reasoning"]].copy()
         add_styled_sheet(df_rca, "Root_Cause_Analysis")
         
         # 3. Output Mitigation Recommendations
         df_mitigation = pd.DataFrame(mitigation_results)
         if df_mitigation.empty:
-            df_mitigation = pd.DataFrame(columns=["SKU", "DC", "Date_of_OOS", "Recommended_Action", "Action_Steps", "Inventory_Impact_Units", "Estimated_Cost_USD", "Priority_Level"])
+            df_mitigation = pd.DataFrame(columns=["SKU", "DC", "Week_of_OOS", "Recommended_Action", "Action_Steps", "Inventory_Impact_Units", "Estimated_Cost_USD", "Priority_Level"])
+        else:
+            df_mitigation = df_mitigation[["SKU", "DC", "Week_of_OOS", "Recommended_Action", "Action_Steps", "Inventory_Impact_Units", "Estimated_Cost_USD", "Priority_Level"]].copy()
         add_styled_sheet(df_mitigation, "Mitigation_Recommendations")
         
         # 4. Copy Input sheets for reference

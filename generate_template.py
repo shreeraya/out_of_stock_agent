@@ -8,7 +8,6 @@ def create_styled_excel():
     # Define color palette (Executive Slate Theme)
     HEADER_FILL = PatternFill(start_color="2C3E50", end_color="2C3E50", fill_type="solid") # Dark Navy/Slate
     ZEBRA_FILL = PatternFill(start_color="F8F9FA", end_color="F8F9FA", fill_type="solid") # Very light gray
-    ACCENT_FILL = PatternFill(start_color="EAECEE", end_color="EAECEE", fill_type="solid") # Light gray accent for index/headers
     WHITE_FILL = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
     
     # Text fonts
@@ -23,7 +22,6 @@ def create_styled_excel():
     left_align = Alignment(horizontal="left", vertical="center")
     center_align = Alignment(horizontal="center", vertical="center")
     right_align = Alignment(horizontal="right", vertical="center")
-    wrap_left_align = Alignment(horizontal="left", vertical="center", wrap_text=True)
     
     # Borders
     thin_border_side = Side(border_style="thin", color="D5DBDB")
@@ -31,76 +29,77 @@ def create_styled_excel():
     thick_bottom_side = Side(border_style="medium", color="2C3E50")
     header_border = Border(left=thin_border_side, right=thin_border_side, top=thin_border_side, bottom=thick_bottom_side)
     
-    # Prepare Mock Data
+    # Prepare Mock Data (Weekly Granularity)
     
-    # 1. SKU Metadata
+    # 1. SKU Metadata (Lead times in weeks)
     sku_data = [
-        {"SKU": "SKU-001", "Description": "Premium Wireless Headphones", "Category": "Electronics", "Supplier_ID": "SUPP-101", "Unit_Cost_USD": 45.00, "Selling_Price_USD": 99.00, "Lead_Time_Days": 7, "Lead_Time_StdDev_Days": 1.2},
-        {"SKU": "SKU-002", "Description": "Ergonomic Office Chair", "Category": "Furniture", "Supplier_ID": "SUPP-202", "Unit_Cost_USD": 75.00, "Selling_Price_USD": 180.00, "Lead_Time_Days": 10, "Lead_Time_StdDev_Days": 2.0},
-        {"SKU": "SKU-003", "Description": "Organic Matcha Tea Powder 100g", "Category": "Pantry", "Supplier_ID": "SUPP-303", "Unit_Cost_USD": 8.50, "Selling_Price_USD": 22.00, "Lead_Time_Days": 12, "Lead_Time_StdDev_Days": 2.5},
-        {"SKU": "SKU-004", "Description": "Smart Fitness Tracker Band", "Category": "Electronics", "Supplier_ID": "SUPP-101", "Unit_Cost_USD": 20.00, "Selling_Price_USD": 49.00, "Lead_Time_Days": 5, "Lead_Time_StdDev_Days": 1.0},
-        {"SKU": "SKU-005", "Description": "Biodegradable Bamboo Coffee Mug", "Category": "Housewares", "Supplier_ID": "SUPP-404", "Unit_Cost_USD": 3.00, "Selling_Price_USD": 12.00, "Lead_Time_Days": 6, "Lead_Time_StdDev_Days": 1.5}
+        {"SKU": "SKU-001", "Description": "Premium Wireless Headphones", "Category": "Electronics", "Supplier_ID": "SUPP-101", "Unit_Cost_USD": 45.00, "Selling_Price_USD": 99.00, "Lead_Time_Weeks": 1.0, "Lead_Time_StdDev_Weeks": 0.2},
+        {"SKU": "SKU-002", "Description": "Ergonomic Office Chair", "Category": "Furniture", "Supplier_ID": "SUPP-202", "Unit_Cost_USD": 75.00, "Selling_Price_USD": 180.00, "Lead_Time_Weeks": 2.0, "Lead_Time_StdDev_Weeks": 0.4},
+        {"SKU": "SKU-003", "Description": "Organic Matcha Tea Powder 100g", "Category": "Pantry", "Supplier_ID": "SUPP-303", "Unit_Cost_USD": 8.50, "Selling_Price_USD": 22.00, "Lead_Time_Weeks": 2.0, "Lead_Time_StdDev_Weeks": 0.5},
+        {"SKU": "SKU-004", "Description": "Smart Fitness Tracker Band", "Category": "Electronics", "Supplier_ID": "SUPP-101", "Unit_Cost_USD": 20.00, "Selling_Price_USD": 49.00, "Lead_Time_Weeks": 1.0, "Lead_Time_StdDev_Weeks": 0.2},
+        {"SKU": "SKU-005", "Description": "Biodegradable Bamboo Coffee Mug", "Category": "Housewares", "Supplier_ID": "SUPP-404", "Unit_Cost_USD": 3.00, "Selling_Price_USD": 12.00, "Lead_Time_Weeks": 1.0, "Lead_Time_StdDev_Weeks": 0.3}
     ]
     df_sku = pd.DataFrame(sku_data)
     
-    # 2. Inventory Status
+    # 2. Inventory Status (safety/reorder quantities in units, demand stddev as weekly)
     inventory_data = [
-        {"SKU": "SKU-001", "DC": "DC-EAST", "Current_Stock_Units": 200, "Safety_Stock_Units": 50, "Reorder_Point_Units": 80, "Reorder_Quantity_Units": 150, "Demand_StdDev_Units": 2.5},
-        {"SKU": "SKU-002", "DC": "DC-EAST", "Current_Stock_Units": 120, "Safety_Stock_Units": 40, "Reorder_Point_Units": 60, "Reorder_Quantity_Units": 100, "Demand_StdDev_Units": 4.0},
-        {"SKU": "SKU-003", "DC": "DC-WEST", "Current_Stock_Units": 50, "Safety_Stock_Units": 30, "Reorder_Point_Units": 60, "Reorder_Quantity_Units": 120, "Demand_StdDev_Units": 3.0},
-        {"SKU": "SKU-004", "DC": "DC-EAST", "Current_Stock_Units": 10, "Safety_Stock_Units": 40, "Reorder_Point_Units": 50, "Reorder_Quantity_Units": 100, "Demand_StdDev_Units": 2.0},
-        {"SKU": "SKU-005", "DC": "DC-EAST", "Current_Stock_Units": 15, "Safety_Stock_Units": 25, "Reorder_Point_Units": 35, "Reorder_Quantity_Units": 80, "Demand_StdDev_Units": 1.5},
-        {"SKU": "SKU-005", "DC": "DC-WEST", "Current_Stock_Units": 300, "Safety_Stock_Units": 40, "Reorder_Point_Units": 80, "Reorder_Quantity_Units": 150, "Demand_StdDev_Units": 1.0}
+        {"SKU": "SKU-001", "DC": "DC-EAST", "Current_Stock_Units": 200, "Safety_Stock_Units": 50, "Reorder_Point_Units": 80, "Reorder_Quantity_Units": 150, "Weekly_Demand_StdDev_Units": 12.5},
+        {"SKU": "SKU-002", "DC": "DC-EAST", "Current_Stock_Units": 120, "Safety_Stock_Units": 40, "Reorder_Point_Units": 60, "Reorder_Quantity_Units": 100, "Weekly_Demand_StdDev_Units": 18.0},
+        {"SKU": "SKU-003", "DC": "DC-WEST", "Current_Stock_Units": 50, "Safety_Stock_Units": 30, "Reorder_Point_Units": 60, "Reorder_Quantity_Units": 120, "Weekly_Demand_StdDev_Units": 15.0},
+        {"SKU": "SKU-004", "DC": "DC-EAST", "Current_Stock_Units": 10, "Safety_Stock_Units": 40, "Reorder_Point_Units": 50, "Reorder_Quantity_Units": 100, "Weekly_Demand_StdDev_Units": 10.0},
+        {"SKU": "SKU-005", "DC": "DC-EAST", "Current_Stock_Units": 15, "Safety_Stock_Units": 25, "Reorder_Point_Units": 35, "Reorder_Quantity_Units": 80, "Weekly_Demand_StdDev_Units": 8.0},
+        {"SKU": "SKU-005", "DC": "DC-WEST", "Current_Stock_Units": 300, "Safety_Stock_Units": 40, "Reorder_Point_Units": 80, "Reorder_Quantity_Units": 150, "Weekly_Demand_StdDev_Units": 5.0} # Transfer source
     ]
     df_inventory = pd.DataFrame(inventory_data)
     
-    # 3. Demand Forecast (30-day projection starting from today)
-    start_date = datetime.date.today()
+    # 3. Demand Forecast (12-week projection starting from next Monday)
+    today = datetime.date.today()
+    next_monday = today + datetime.timedelta(days=(7 - today.weekday()) % 7)
+    if next_monday == today:
+        next_monday = today + datetime.timedelta(days=7)
+        
     demand_records = []
     
-    for day in range(30):
-        current_date = start_date + datetime.timedelta(days=day)
+    for week in range(12):
+        current_date = next_monday + datetime.timedelta(weeks=week)
         date_str = current_date.strftime("%Y-%m-%d")
         
         # SKU-001: DC-EAST (Steady demand, well stocked)
-        demand_records.append({"SKU": "SKU-001", "DC": "DC-EAST", "Date": date_str, "Forecasted_Demand_Units": 12})
+        demand_records.append({"SKU": "SKU-001", "DC": "DC-EAST", "Week_Start_Date": date_str, "Forecasted_Demand_Units": 60})
         
-        # SKU-002: DC-EAST (Promotional spike starting Day 10)
-        # Steady at 8/day, then spikes to 45/day from Day 10 to 14, then back to 8/day
-        demand = 8
-        if 10 <= day <= 14:
-            demand = 45
-        demand_records.append({"SKU": "SKU-002", "DC": "DC-EAST", "Date": date_str, "Forecasted_Demand_Units": demand})
+        # SKU-002: DC-EAST (Promotional spike starting Week 4)
+        # Steady at 40/week, then spikes to 200/week in Week 4 and Week 5, then back to 40/week
+        demand = 40
+        if 4 <= week <= 5:
+            demand = 200
+        demand_records.append({"SKU": "SKU-002", "DC": "DC-EAST", "Week_Start_Date": date_str, "Forecasted_Demand_Units": demand})
         
-        # SKU-003: DC-WEST (Steady demand, but supply delay causes stockout)
-        # Demand is 10/day
-        demand_records.append({"SKU": "SKU-003", "DC": "DC-WEST", "Date": date_str, "Forecasted_Demand_Units": 10})
+        # SKU-003: DC-WEST (Steady demand, but delayed PO causes stockout)
+        # Demand is 50/week
+        demand_records.append({"SKU": "SKU-003", "DC": "DC-WEST", "Week_Start_Date": date_str, "Forecasted_Demand_Units": 50})
         
         # SKU-004: DC-EAST (Low initial stock, steady demand)
-        # Demand is 8/day
-        demand_records.append({"SKU": "SKU-004", "DC": "DC-EAST", "Date": date_str, "Forecasted_Demand_Units": 8})
+        # Demand is 40/week
+        demand_records.append({"SKU": "SKU-004", "DC": "DC-EAST", "Week_Start_Date": date_str, "Forecasted_Demand_Units": 40})
         
         # SKU-005: DC-EAST & DC-WEST (Stock transfer scenario)
-        # DC-EAST demand: 5/day. Stock starts at 15 -> runs dry day 3
-        demand_records.append({"SKU": "SKU-005", "DC": "DC-EAST", "Date": date_str, "Forecasted_Demand_Units": 5})
-        # DC-WEST demand: 4/day. Stock starts at 300 -> stays completely healthy
-        demand_records.append({"SKU": "SKU-005", "DC": "DC-WEST", "Date": date_str, "Forecasted_Demand_Units": 4})
+        # DC-EAST demand: 25/week. Stock starts at 15 -> runs dry Week 1
+        demand_records.append({"SKU": "SKU-005", "DC": "DC-EAST", "Week_Start_Date": date_str, "Forecasted_Demand_Units": 25})
+        # DC-WEST demand: 20/week. Stock starts at 300 -> stays completely healthy
+        demand_records.append({"SKU": "SKU-005", "DC": "DC-WEST", "Week_Start_Date": date_str, "Forecasted_Demand_Units": 20})
         
     df_demand = pd.DataFrame(demand_records)
     
-    # 4. Supply Pipeline
+    # 4. Supply Pipeline (snapped to week-start Mondays)
     pipeline_data = [
-        # SKU-001: DC-EAST (Order placed, arriving on Day 12 - covers stock perfectly)
-        {"SKU": "SKU-001", "DC": "DC-EAST", "Order_ID": "PO-991", "Quantity_Units": 150, "Expected_Delivery_Date": (start_date + datetime.timedelta(days=12)).strftime("%Y-%m-%d"), "Status": "In Transit"},
+        # SKU-001: DC-EAST (Order placed, arriving on Week 4)
+        {"SKU": "SKU-001", "DC": "DC-EAST", "Order_ID": "PO-991", "Quantity_Units": 150, "Expected_Delivery_Week_Start": (next_monday + datetime.timedelta(weeks=4)).strftime("%Y-%m-%d"), "Status": "In Transit"},
         
-        # SKU-002: DC-EAST (Emergency PO placed late due to lead time, arriving Day 20 - too late for the promotion spike!)
-        {"SKU": "SKU-002", "DC": "DC-EAST", "Order_ID": "PO-992", "Quantity_Units": 100, "Expected_Delivery_Date": (start_date + datetime.timedelta(days=20)).strftime("%Y-%m-%d"), "Status": "Placed"},
+        # SKU-002: DC-EAST (Emergency PO arriving Week 8 - too late for the promotion spike in Week 4!)
+        {"SKU": "SKU-002", "DC": "DC-EAST", "Order_ID": "PO-992", "Quantity_Units": 100, "Expected_Delivery_Week_Start": (next_monday + datetime.timedelta(weeks=8)).strftime("%Y-%m-%d"), "Status": "Placed"},
         
-        # SKU-003: DC-WEST (Late supplier delivery - originally expected Day 3, but supplier delayed it to Day 16!)
-        {"SKU": "SKU-003", "DC": "DC-WEST", "Order_ID": "PO-993", "Quantity_Units": 120, "Expected_Delivery_Date": (start_date + datetime.timedelta(days=16)).strftime("%Y-%m-%d"), "Status": "Delayed"},
-        
-        # SKU-004: DC-EAST (No outstanding orders - severe understocking!)
-        # SKU-005: DC-EAST & DC-WEST (No outstanding orders)
+        # SKU-003: DC-WEST (Late supplier delivery - originally expected Week 1, but delayed to Week 6!)
+        {"SKU": "SKU-003", "DC": "DC-WEST", "Order_ID": "PO-993", "Quantity_Units": 120, "Expected_Delivery_Week_Start": (next_monday + datetime.timedelta(weeks=6)).strftime("%Y-%m-%d"), "Status": "Delayed"},
     ]
     df_pipeline = pd.DataFrame(pipeline_data)
     
@@ -112,38 +111,39 @@ def create_styled_excel():
     ws_readme.title = "README"
     ws_readme.views.sheetView[0].showGridLines = True
     
-    ws_readme["A2"] = "StockSentinel - Multi-Agent Supply Chain OOS Guard"
+    ws_readme["A2"] = "StockSentinel - Weekly Multi-Agent OOS Guard"
     ws_readme["A2"].font = title_font
-    ws_readme["A3"] = "Input Template & Operating Instructions"
+    ws_readme["A3"] = "Input Template & Operating Instructions (Weekly Granularity)"
     ws_readme["A3"].font = subtitle_font
     
     instructions = [
         "",
-        "Welcome to the StockSentinel Multi-Agent Out-of-Stock (OOS) Predictor framework.",
-        "This spreadsheet serves as the template for loading your supply chain data. The Python engine",
-        "reads these input sheets, simulates inventory day-by-day, and launches collaborative AI agents",
-        "to diagnose root causes and recommend preventive mitigation strategies.",
+        "Welcome to the weekly-focused StockSentinel Multi-Agent Out-of-Stock (OOS) Predictor framework.",
+        "This spreadsheet serves as the template for loading your supply chain data at a weekly granularity.",
+        "The Python engine simulates weekly inventory logs, calculates volatility risks, and invokes collaborative",
+        "AI agents to diagnose root causes and recommend actionable operational mitigation strategies.",
         "",
         "DIRECTIONS FOR USE:",
         "1. Populate the 4 orange-tabbed sheets with your actual supply chain data.",
-        "   - SKU_Metadata: Basic information, unit costs, and supplier lead times for each SKU.",
-        "   - Inventory_Status: The current inventory snapshot, safety stock, and reorder triggers.",
-        "   - Demand_Forecast: Daily forecasted unit sales for the next 30 days.",
-        "   - Supply_Pipeline: Outstanding purchase orders (POs), shipment quantities, and delivery dates.",
+        "   - SKU_Metadata: Basic information, unit costs, and supplier lead times in WEEKS.",
+        "   - Inventory_Status: Current inventory snapshot, safety stock, and weekly demand variability.",
+        "   - Demand_Forecast: Forecasted unit sales aggregated by Week_Start_Date (Mondays) for a 12-week horizon.",
+        "   - Supply_Pipeline: Outstanding POs, expected delivery week start dates, and status.",
         "2. Configure your OpenAI API Key in a '.env' file in the project folder.",
         "3. Run the analysis engine by executing: python run_analysis.py",
-        "4. A new styled report ('oos_analysis_report.xlsx') will be generated, containing the",
-        "   executive OOS Risk Dashboard, Root Cause Diagnoses, and Action Recommendations.",
+        "4. A beautifully styled report ('oos_analysis_report.xlsx') will be generated, containing the",
+        "   executive OOS Risk Dashboard (showing Week of OOS, Weeks Until OOS, and Probability Scores),",
+        "   Root Cause Diagnoses, and Action Directives.",
         "",
-        "MOCK SCENARIOS DEMONSTRATED IN THIS DATASET:",
-        "- SKU-001 (DC-EAST): Steady demand & supply pipeline. No stockouts predicted.",
-        "- SKU-002 (DC-EAST): Promotional Demand Spike on Days 10-14. Stockout occurs because the PO lead time (10 days)",
+        "MOCK SCENARIOS DEMONSTRATED IN THIS WEEKLY DATASET:",
+        "- SKU-001 (DC-EAST): Steady demand & supply pipeline. Expected stock stays completely healthy.",
+        "- SKU-002 (DC-EAST): Promotional Demand Spike on Weeks 4-5. Stockout is predicted in Week 4 because lead time (2 weeks)",
         "  prevents replenishment from arriving in time. Needs expedited shipping or earlier ordering.",
-        "- SKU-003 (DC-WEST): Late Supplier Delivery. The shipment (PO-993) is delayed until Day 16.",
-        "  Inventory runs dry on Day 5 and stays OOS for 11 days. Needs supplier mitigation.",
-        "- SKU-004 (DC-EAST): Low Initial Stock. Starting inventory is 10 units with no PO in transit. Runs out on Day 2.",
-        "- SKU-005 (DC-EAST): Distribution imbalance. DC-EAST runs dry on Day 3, but DC-WEST has excess safety stock.",
-        "  Perfect candidate for an Inter-DC Transfer recommendation."
+        "- SKU-003 (DC-WEST): Late Supplier Delivery. PO-993 is delayed from Week 1 to Week 6.",
+        "  Inventory runs dry in Week 2 and stays out-of-stock for 4 weeks. Needs urgent supplier escalation.",
+        "- SKU-004 (DC-EAST): Low Initial Stock. Starting inventory is 10 units with no PO in transit. Runs out in Week 1.",
+        "- SKU-005 (DC-EAST): Distribution imbalance. DC-EAST runs dry in Week 1, but DC-WEST has excess safety stock.",
+        "  Perfect candidate for a Plant-to-Plant Stock Transport Order (STO) transfer."
     ]
     
     for row_idx, line in enumerate(instructions, start=5):
@@ -185,13 +185,13 @@ def create_styled_excel():
                 header_name = headers[col_idx - 1]
                 if "SKU" in header_name or "DC" in header_name or "ID" in header_name or "Status" in header_name:
                     cell.alignment = center_align
-                elif "Date" in header_name:
+                elif "Date" in header_name or "Week_Start" in header_name:
                     cell.alignment = center_align
                 elif "Cost" in header_name or "Price" in header_name:
                     cell.number_format = "$#,##0.00"
                     cell.alignment = right_align
-                elif "Units" in header_name or "Stock" in header_name or "Point" in header_name or "Quantity" in header_name or "Days" in header_name or "Demand" in header_name:
-                    cell.number_format = "#,##0"
+                elif "Units" in header_name or "Stock" in header_name or "Point" in header_name or "Quantity" in header_name or "Weeks" in header_name or "Demand" in header_name:
+                    cell.number_format = "#,##0.0" if "StdDev" in header_name or "Weeks" in header_name else "#,##0"
                     cell.alignment = right_align
                 else:
                     cell.alignment = left_align
@@ -200,7 +200,6 @@ def create_styled_excel():
         for col in ws.columns:
             max_len = 0
             col_letter = get_column_letter(col[0].column)
-            # Check length of headers and data
             for cell in col:
                 if cell.value is not None:
                     # Special format length checking
