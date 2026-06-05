@@ -106,7 +106,7 @@ st.markdown("""
         margin-bottom: 1rem;
     }
 </style>
-""", unsafe_type_html=True)
+""", unsafe_allow_html=True)
 
 # Helper to check API status
 def get_api_health():
@@ -119,8 +119,8 @@ def get_api_health():
     return None
 
 # Sidebar Content
-st.sidebar.markdown("<h2 style='text-align: center; color: #1e3c72;'>StockSentinel 🛡️</h2>", unsafe_type_html=True)
-st.sidebar.markdown("<p style='text-align: center; font-style: italic; font-size: 0.9rem;'>Weekly Multi-Agent OOS Guard</p>", unsafe_type_html=True)
+st.sidebar.markdown("<h2 style='text-align: center; color: #1e3c72;'>StockSentinel 🛡️</h2>", unsafe_allow_html=True)
+st.sidebar.markdown("<p style='text-align: center; font-style: italic; font-size: 0.9rem;'>Weekly Multi-Agent OOS Guard</p>", unsafe_allow_html=True)
 st.sidebar.divider()
 
 # Health Status Indicator
@@ -149,7 +149,7 @@ st.sidebar.markdown(
     "<div style='font-size: 0.85rem; color:#718096; text-align: center;'>"
     "StockSentinel Engine v1.0 • Decoupled Architecture"
     "</div>", 
-    unsafe_type_html=True
+    unsafe_allow_html=True
 )
 
 # Header Banner
@@ -158,7 +158,7 @@ st.markdown("""
     <h1>StockSentinel 🛡️</h1>
     <p>Predict supply chain out-of-stock events, diagnose volatility root causes, and formulate ERP directives.</p>
 </div>
-""", unsafe_type_html=True)
+""", unsafe_allow_html=True)
 
 # Initialize Session State
 if "pipeline_results" not in st.session_state:
@@ -226,21 +226,21 @@ with tab_dash:
                 <div class="metric-label">Total SKUs Tracked</div>
                 <div class="metric-value">{total_skus}</div>
             </div>
-            """, unsafe_type_html=True)
+            """, unsafe_allow_html=True)
         with col2:
             st.markdown(f"""
             <div class="metric-card">
                 <div class="metric-label">OOS Risks Detected</div>
                 <div class="metric-value">{len(oos_risks)}</div>
             </div>
-            """, unsafe_type_html=True)
+            """, unsafe_allow_html=True)
         with col3:
             st.markdown(f"""
             <div class="metric-card">
                 <div class="metric-label">High Severity Risks</div>
                 <div class="metric-value" style="color: #9B2C2C;">{high_severity}</div>
             </div>
-            """, unsafe_type_html=True)
+            """, unsafe_allow_html=True)
             
         st.subheader("Simulated Stockout Incidents")
         if not oos_risks:
@@ -277,7 +277,7 @@ with tab_dash:
                     st.markdown(f"**Secondary Factors:** *{rca_rep.get('Secondary_Factors', 'N/A')}*")
                     
                     st.markdown("##### Narrative Diagnostics Summary:")
-                    st.markdown(f"<div class='detail-card'>{rca_rep.get('Narrative_Reasoning', 'N/A')}</div>", unsafe_type_html=True)
+                    st.markdown(f"<div class='detail-card'>{rca_rep.get('Narrative_Reasoning', 'N/A')}</div>", unsafe_allow_html=True)
             
             with col_right:
                 if mit_rep:
