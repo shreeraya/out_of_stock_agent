@@ -18,7 +18,8 @@ class ExcelHandler:
             "SKU_Metadata": ["SKU", "Description", "Category", "Supplier_ID", "Unit_Cost_USD", "Selling_Price_USD", "Lead_Time_Weeks"],
             "Inventory_Status": ["SKU", "DC", "Current_Stock_Units", "Safety_Stock_Units", "Reorder_Point_Units", "Reorder_Quantity_Units"],
             "Demand_Forecast": ["SKU", "DC", "Week_Start_Date", "Forecasted_Demand_Units"],
-            "Supply_Pipeline": ["SKU", "DC", "Order_ID", "Quantity_Units", "Expected_Delivery_Week_Start", "Status"]
+            "Supply_Pipeline": ["SKU", "DC", "Order_ID", "Quantity_Units", "Expected_Delivery_Week_Start", "Status"],
+            "Historical_Sales": ["SKU", "DC", "Week_Start_Date", "Forecasted_Demand_Units", "Actual_Sales_Units"]
         }
         
         data = {}
@@ -65,7 +66,7 @@ class ExcelHandler:
                 
         return data
 
-    def write_analysis_report(self, output_path: str, input_data: dict, oos_risks: list, rca_results: list, mitigation_results: list):
+    def write_analysis_report(self, output_path: str, input_data: dict, oos_risks: list, rca_results: list, mitigation_results: list, forecast_audit_results: list = None, inventory_optimization_results: list = None):
         """Creates a beautiful, executive-ready Excel workbook compiling inputs and analysis."""
         wb = openpyxl.Workbook()
         
@@ -278,7 +279,21 @@ class ExcelHandler:
             df_mitigation = df_mitigation[["SKU", "DC", "Week_of_OOS", "Recommended_Action", "Action_Steps", "Inventory_Impact_Units", "Estimated_Cost_USD", "Priority_Level"]].copy()
         add_styled_sheet(df_mitigation, "Mitigation_Recommendations")
         
-        # 4. Copy Input sheets for reference
+        # 4. Output Forecast Audit
+        if forecast_audit_results:
+            df_fa = pd.DataFrame(forecast_audit_results)
+            cols_fa = ["SKU", "DC", "MAPE", "Bias", "Forecast_Status", "MAPE_Analysis", "Bias_Analysis", "Suggested_Action"]
+            df_fa = df_fa[[c for c in cols_fa if c in df_fa.columns]].copy()
+            add_styled_sheet(df_fa, "Forecast_Audit")
+            
+        # 5. Output Inventory Optimization
+        if inventory_optimization_results:
+            df_io = pd.DataFrame(inventory_optimization_results)
+            cols_io = ["SKU", "DC", "Current_Safety_Stock", "Optimal_Safety_Stock", "Current_Reorder_Point", "Optimal_Reorder_Point", "Optimal_EOQ", "Stock_Turn_Rate", "Safety_Stock_Analysis", "Replenishment_Analysis", "Stock_Turn_Analysis", "ERP_Directives"]
+            df_io = df_io[[c for c in cols_io if c in df_io.columns]].copy()
+            add_styled_sheet(df_io, "Inventory_Optimization")
+        
+        # 6. Copy Input sheets for reference
         for sheet_name, df_in in input_data.items():
             add_styled_sheet(df_in, f"In_{sheet_name}")
             
